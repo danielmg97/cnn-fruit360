@@ -6,13 +6,11 @@ from tqdm import tqdm
 
 DATADIR = "fruits-360/Test/"
 
-CATEGORIES = ["Pear Williams","Pepino"]
+CLASS_NUMBER = 40
 
-##--Half the categories in the dataset-- (uncomment at your own risk)
-#CATEGORIES = ["Apple Braeburn","Apple Crimson Snow","Apple Golden 1","Apple Golden 2","Apple Golden 3","Apple Granny Smith","Apple Pink Lady","Apple Red 1","Apple Red 2","Apple Red 3","Apple Red Delicious","Apple Red Yellow 1","Apple Red Yellow 2","Apricot","Avocado","Avocado ripe","Banana","Banana Lady Finger","Banana Red","Cactus fruit","Cantaloupe 1","Cantaloupe 2","Carambula","Cherry 1","Cherry 2","Cherry Rainier","Cherry Wax Black","Cherry Wax Red","Cherry Wax Yellow","Chestnut","Clementine","Cocos","Dates","Granadilla","Grape Blue","Grape Pink","Grape White","Grape White 2","Grape White 3"]
+CATEGORIES = ["Apple Braeburn","Apple Crimson Snow","Apple Golden 1","Apple Golden 2","Apple Golden 3","Apple Granny Smith","Apple Pink Lady","Apple Red 1","Apple Red 2","Apple Red 3","Apple Red Delicious","Apple Red Yellow 1","Apple Red Yellow 2","Apricot","Avocado","Avocado ripe","Banana","Banana Lady Finger","Banana Red","Cactus fruit","Cantaloupe 1","Cantaloupe 2","Carambula","Cherry 1","Cherry 2","Cherry Rainier","Cherry Wax Black","Cherry Wax Red","Cherry Wax Yellow","Chestnut","Clementine","Cocos","Dates","Granadilla","Grape Blue","Grape Pink","Grape White","Grape White 2","Grape White 3","Grape White 4","Grapefruit Pink","Grapefruit White","Guava","Hazelnut","Huckleberry","Kaki","Kiwi","Kohlrabi","Kumquats","Lemon","Lemon Meyer","Limes","Lychee","Mandarine","Mango","Mangostan","Maracuja","Melon Piel de Sapo","Mulberry","Nectarine","Orange","Papaya","Passion Fruit","Peach","Peach 2","Peach Flat","Pear","Pear Abate","Pear Kaiser","Pear Monster","Pear Red","Pear Williams","Pepino","Pepper Green","Pepper Red","Pepper Yellow","Physalis","Physalis with Husk","Pineapple","Pineapple Mini","Pitahaya Red","Plum","Plum 2","Plum 3","Pomegranate","Pomelo Sweetie","Quince","Rambutan","Raspberry","Redcurrant","Salak","Strawberry","Strawberry Wedge","Tamarillo","Tangelo","Tomato 1","Tomato 2","Tomato 3","Tomato 4","Tomato Cherry Red","Tomato Maroon","Tomato Yellow","Walnut"]
 
-##--All the categories in the dataset--  (uncomment at your own risk)
-#CATEGORIES = ["Apple Braeburn","Apple Crimson Snow","Apple Golden 1","Apple Golden 2","Apple Golden 3","Apple Granny Smith","Apple Pink Lady","Apple Red 1","Apple Red 2","Apple Red 3","Apple Red Delicious","Apple Red Yellow 1","Apple Red Yellow 2","Apricot","Avocado","Avocado ripe","Banana","Banana Lady Finger","Banana Red","Cactus fruit","Cantaloupe 1","Cantaloupe 2","Carambula","Cherry 1","Cherry 2","Cherry Rainier","Cherry Wax Black","Cherry Wax Red","Cherry Wax Yellow","Chestnut","Clementine","Cocos","Dates","Granadilla","Grape Blue","Grape Pink","Grape White","Grape White 2","Grape White 3","Grape White 4","Grapefruit Pink","Grapefruit White","Guava","Hazelnut","Huckleberry","Kaki","Kiwi","Kohlrabi","Kumquats","Lemon","Lemon Meyer","Limes","Lychee","Mandarine","Mango","Mangostan","Maracuja","Melon Piel de Sapo","Mulberry","Nectarine","Orange","Papaya","Passion Fruit","Peach","Peach 2","Peach Flat","Pear","Pear Abate","Pear Kaiser","Pear Monster","Pear Red","Pear Williams","Pepino","Pepper Green","Pepper Red","Pepper Yellow","Physalis","Physalis with Husk","Pineapple","Pineapple Mini","Pitahaya Red","Plum","Plum 2","Plum 3","Pomegranate","Pomelo Sweetie","Quince","Rambutan","Raspberry","Redcurrant","Salak","Strawberry","Strawberry Wedge","Tamarillo","Tangelo","Tomato 1","Tomato 2","Tomato 3","Tomato 4","Tomato Cherry Red","Tomato Maroon","Tomato Yellow","Walnut"]
+CATEGORIES = CATEGORIES[0:CLASS_NUMBER]
 
 IMG_SIZE = 100
 training_data = []
@@ -57,17 +55,17 @@ pickle.dump(y, pickle_out)
 pickle_out.close()
 
 
+#   --Command for tensorboard--
+#   tensorboard --logdir=logs/
 
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, Activation, Flatten
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
-
+# more info on callbakcs: https://keras.io/callbacks/ model saver is cool too.
 from tensorflow.keras.callbacks import TensorBoard
 import pickle
 import time
-
-NAME = "fruit360-CNN"
 
 pickle_in = open("X.pickle","rb")
 X = pickle.load(pickle_in)
@@ -77,32 +75,47 @@ y = pickle.load(pickle_in)
 
 X = X/255.0
 
+dense_layer = 2
+layer_size = 64
+conv_layer = 2
+
+NAME = "fruit360-cnn"
+
 model = Sequential()
 
-model.add(Conv2D(64, (3, 3), input_shape=X.shape[1:]))
+model.add(Conv2D(layer_size, (3, 3), input_shape=X.shape[1:]))
 model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 
-model.add(Conv2D(64, (3, 3)))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
+for l in range(conv_layer-1):
+    model.add(Conv2D(layer_size, (3, 3)))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
 
-model.add(Flatten())  # this converts our 3D feature maps to 1D feature vectors
-model.add(Dense(64))
-model.add(Activation('relu'))
+model.add(Flatten())
 
-model.add(Dense(1))
-model.add(Activation('sigmoid'))
+for _ in range(dense_layer):
+    model.add(Dense(layer_size))
+    model.add(Activation('relu'))
+
+model.add(Dense(CLASS_NUMBER)) #must alter this when we change the number of classes we are predicting
+model.add(Activation('softmax'))
 
 tensorboard = TensorBoard(log_dir="logs\\{}".format(NAME))
 
-model.compile(loss='binary_crossentropy',
+
+model.compile(loss='categorical_crossentropy',
               optimizer='adam',
               metrics=['accuracy'],
               )
 
+from keras.utils.np_utils import to_categorical
+y = to_categorical(y)
+
 model.fit(X, y,
-          batch_size=32,
-          epochs=10,
+          batch_size=59,
+          epochs=6 ,
           validation_split=0.3,
           callbacks=[tensorboard])
+
+model.save('64x3-CNN.model')
